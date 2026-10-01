@@ -64,9 +64,9 @@ $total = calcularPrecio($orden->manoObra, $orden->recambios);
 
 //Creamos el catálogo de piezas
 $recambios = [
-    ['nombre' => 'Pantalla', 'precio' => 100.0],
-    ['nombre' => 'Batería', 'precio' => 50.0],
-    ['nombre' => 'Placa Base', 'precio' => 200.0]
+    ['nombre' => 'Pantalla', 'precio' => 100.0, 'stock' => 10],
+    ['nombre' => 'Batería', 'precio' => 50.0, 'stock' => 20],
+    ['nombre' => 'Placa Base', 'precio' => 200.0, 'stock' => 5]
 ];
 
 /* AUMENTAR PRECIOS */
@@ -99,3 +99,161 @@ foreach ($disponibles as $pieza) {
     $valorTotal += $pieza['precio'] * $pieza['stock'];
 }
 
+/* PAGINACIÓN */
+
+//Número de piezas que mostramos por página
+$porPagina = 2;
+
+//Obtenemos el número de página
+// Si no existe, utilizamos la pagina 1
+$pagina = isset($_GET['pagina']) ? $_GET['pagina'] : 1;
+
+// Comprobamos que sea un numero entero
+$pagina = filter_var($pagina, FILTER_VALIDATE_INT);
+
+// Si no es válida, ponemos la página 1
+if ($pagina === false || $pagina < 1) {
+    $pagina = 1;
+}
+
+// Calculamos el numero total de páginas
+$totalPaginas = (int) ceil(count($disponibles) / $porPagina);
+
+// Como mínimo debe existir una página
+if ($totalPaginas < 1) {
+    $totalPaginas = 1;
+}
+
+// Si se pide una página superior a la última, mostramos la última página
+if ($pagina > $totalPaginas) {
+    $pagina = $totalPaginas;
+}
+
+// Calculamos desde qué posición debemos empezar
+$inicio = ($pagina - 1) * $porPagina;
+
+// Obtenemos las piezas que corresponden a esta página
+$lista = array_slice($disponibles, $inicio, $porPagina);
+
+/* BÚFER DE SALIDA */
+
+// Empezamos a guardar el HTML en memoria
+ob_start();
+
+?>
+
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>TechFix</title>
+</head>
+
+<body>
+    <h1>TechFix - Gestión de Reparaciones</h1>
+
+    <h2>Datos del cliente</h2>
+
+    <!-- Mostramos los datos de la solicitud -->
+    <p>
+        Solicitud:
+        <?= limpiar((string) $orden->id) ?>
+    </p>
+
+    <!-- Mostramos el nombre del cliente -->
+    <p>
+        Cliente:
+        <?= limpiar($orden->cliente) ?>
+    </p>
+
+    <!-- Mostramos la longitud del nombre del cliente -->
+    <p>
+        Longitud del nombre:
+        <?= $longitud ?>
+    </p>
+
+    <!-- Mostramos el tipo de reparación -->
+    <p>
+        Tipo de reparación:
+        <?= limpiar($orden->tipoReparacion->value) ?>
+    </p>
+
+    <h2>Presupuesto</h2>
+
+    <!-- Mostramos el precio de la mano de obra -->
+    <p>
+        Mano de obra:
+        <?= $orden->manoObra ?> €
+    </p>
+
+    <!-- Mostramos el precio de los recambios -->
+    <p>
+        Recambios:
+        <?= $orden->recambios ?> €
+    </p>
+
+    <!-- Mostramos el precio total con el IVA incluido -->
+    <p>
+        Total (IVA incluido):
+        <?= number_format($total, 2) ?> €
+    </p>
+
+    <h2>Catálogo de recambios</h2>
+
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Precio</th>
+                <th>Stock</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Recorremos las piezas de la página actual -->
+            <?php foreach ($lista as $pieza) : ?>
+                <tr>
+                    <!-- Nombre de la pieza -->
+                    <td><?= limpiar($pieza['nombre']) ?></td>
+
+                    <!-- Precio de la pieza -->
+                    <td><?= number_format($pieza['precio'], 2) ?> €</td>
+
+                    <!-- Stock de la pieza -->
+                    <td><?= $pieza['stock'] ?></td>
+                </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+
+    <!-- Mostramos el valor total del almacén -->
+    <p>
+        Valor total del almacén:
+        <?= number_format($valorTotal, 2) ?> €
+    </p>
+
+    <!-- Mostramos la página actual -->
+    <p>
+        Página <?= $pagina ?> de <?= $totalPaginas ?>
+    </p>
+
+    <!-- Botón para ir a la página anterior -->
+    <?php if ($pagina > 1) : ?>
+        <a href="?solicitud=<?= $orden->id ?>&cliente=<?= urlencode($cliente) ?>&pagina=<?= $pagina - 1 ?>">Anterior</a>
+    <?php endif; ?>
+
+    <!-- Botón para ir a la página siguiente -->
+    <?php if ($pagina < $totalPaginas) : ?>
+        <a href="?solicitud=<?= $orden->id ?>&cliente=<?= urlencode($cliente) ?>&pagina=<?= $pagina + 1 ?>">Siguiente</a>
+    <?php endif; ?>
+
+</body>
+</html>
+
+<?php
+
+// Recuperamos todo el HTML que estaba en el búfer
+$html = ob_get_clean();
+
+// Mostramos el HTML en el navegador
+echo $html;

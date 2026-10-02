@@ -33,7 +33,7 @@ if ($solicitud === false) {
 
 // Obtenemos el nombre del cliente
 // Si no existe, utilizamos "Cliente Anonimo"
-$cliente = isset($_GET['cliente']) ? $_GET['cliente'] : 0;
+$cliente = isset($_GET['cliente']) ? $_GET['cliente'] : 'Cliente Anónimo';
 
 // Eliminamos espacios al principio y al final
 $cliente = trim($cliente);
@@ -55,10 +55,24 @@ $orden = new OrdenTrabajo(
     recambios: 100.0
 );
 
+/* Descripción del tipo */
+
+$descripcionTipo = match ($orden->tipoReparacion) {
+
+    TipoReparacion::Pantalla =>
+        'Reparación o sustitución de pantalla',
+
+    TipoReparacion::Bateria =>
+        'Cambio de batería',
+
+    TipoReparacion::PlacaBase =>
+        'Reparación de placa base'
+};
+
 /* CALCULAR PRESUPUESTO */
 
-// Calculamos el precio final de la reparación
-$total = calcularPrecio($orden->manoObra, $orden->recambios);
+// Calculamos el precio final de la reparación utilizando argumentos nombrados
+$total = calcularPrecio(manoObra: $orden->manoObra, recambios: $orden->recambios);
 
 /* CATÁLOGO DE RECAMBIOS */
 
